@@ -42,7 +42,10 @@ Resources:
     Properties:
       TemplateURL: ./HAPROXY/Haproxy.yml
       Parameters:
-        
+        AppserverTier:
+        HAproxySG:
+        AMI:
+        Key:
   
 
 Outputs:
