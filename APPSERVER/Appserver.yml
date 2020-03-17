@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  this template creates all the resources for our appserver tier
+Parameters:
+  AppserverSG:
+    Type: String
+
+  AMI:
+    Type: AWS::EC2::Image::Id
+
+  Key:
+    Type: AWS::EC2::KeyPair::KeyName
+
+  AZ1:
+    Type: AWS::EC2::AvailabilityZone::Name
+
+  AZ2:
+    Type: AWS::EC2::AvailabilityZone::Name
+Resources:
+  
+  AppserverTier:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      AssociatePublicIpAddress: true
+      ImageId: !Ref AMI
+      InstanceType: t2.nano 
+      KeyName: !Ref Key
+      LaunchConfigurationName: String
+      SecurityGroups:
+        - !Ref AppserverSG
+      UserData: 
+        "Fn::Base64":
+            !Sub |
+              #!/bin/bash
+              sudo apt-get update -y
+              /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource AppserverTier --configsets appserver --region ${AWS::Region}
+              sudo apt-get update -y
+              /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppserverTier --region ${AWS::Region}
+    CreationPolicy:
+        ResourceSignal:
+          Count: "1"
+          Timeout: PT10M
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          appserver:
+            - "config_cfn"
+            - "startappserver"
+          config_cfn:
+            files:
+              /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+                content: !Sub |
+                  [cfn-auto-reloader-hook]
+                  triggers=post.update
+                  path=Resources.AppserverTier.Metadata.AWS::CloudFormation::Init
+                  action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource AppserverTier --configsets appserver --region ${AWS::Region}
+                  runas=root
+                mode: "000400"
+                owner: root
+                group: root
+              /etc/cfn/cfn-hup.conf:
+                content: !Sub |
+                  [main]
+                  stack=${AWS::StackId}
+                  region=${AWS::Region}
+                  verbose=true
+                  interval=5
+                mode: "000400"
+                owner: root
+                group: root
+            services:
+              sysvinit:
+                cfn-hup:
+                  enabled: "true"
+                  ensureRunning: "true"
+                  files:
+                    - "/etc/cfn/cfn-hup.conf"
+                    - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+          startappserver:
+            packages:
+              apt:
+                git: []
+            commands:
+              repo:
+                cwp: /opt/test
+                command: git clone https://RafaelBMC@bitbucket.org/Marfeel/appserverpythontestapp.git .
+              run:
+                cwp: /opt/test
+                command: /usr/bin/python3 -m http.server --cgi 8080
+
+  AppserverAutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AutoScalingGroupName: String
+      AvailabilityZones:
+        - !Ref AZ1
+        - !Ref AZ2
+      LaunchConfigurationName: !Ref AppserverTier
+      MaxSize: '2' 
+      MinSize: '2'  
+
+Outputs:
+  AppserverTier:
+    Value: !Ref AppserverTier

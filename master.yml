@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  
+Parameters:
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+
+  Key:
+    Type: AWS::EC2::KeyPair::KeyName
+
+  AMI:
+    Type: AWS::EC2::Image::Id
+  
+  AZ1:
+    Type: AWS::EC2::AvailabilityZone::Name
+
+  AZ2:
+    Type: AWS::EC2::AvailabilityZone::Name
+
+Resources:
+  
+  SecurityGroups:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: ./Security/SecGroups.yml
+      Parameters:
+        VPCId: !Ref VPCId
+  
+  AppserverTier:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: ./APPSERVER/Appserver.yml
+      Parameters:
+        AppserverSG: !GetAtt SecurityGroups.Outputs.AppserverSG
+        AMI: !Ref AMI
+        Key: !Ref Key
+        AZ1: !Ref AZ1
+        AZ2: !Ref AZ2
+  
+  HAPROXY:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: ./HAPROXY/Haproxy.yml
+      Parameters:
+        
+  
+
+Outputs:
+
+  https://github.com/ELRuncho/MoodleCloudFormation.git/moodlestack_simple.yaml

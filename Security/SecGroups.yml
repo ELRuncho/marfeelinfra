@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  This template creates the sg for our instances
+Parameters:
+  VPCId:
+    Type: String
+
+Resources:
+  
+  AppserverSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref VPCId
+      GroupDescription: SG for testapp appserver
+      GroupName: RFAppserver
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Candidate
+          Value: Rafael Franco
+      
+  HAProxySG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref VPCId
+      GroupDescription: SG for testapp HAProxy server
+      GroupName: RFHAProxy
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Candidate
+          Value: Rafael Franco
+
+Outputs:
+  HAproxySG:
+    Value: !Ref HAProxySG
+
+  AppserverSG:
+    Value: !Ref AppserverSG
