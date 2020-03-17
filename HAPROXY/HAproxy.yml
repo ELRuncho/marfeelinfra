@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  This template deploys the haproxy instance
+Parameters:
+  HAproxySG:
+    Type: String
+  
+  AMI:
+    Type: String
+
+  VPCId:
+    Type: String
+
+  Key:
+    Type: String
+
+Resources:
+  
+  HAProxyInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: 
+      InstanceType:
+      KeyName:
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            apt-get update -y 
+            apt-get install aws-cfn-bootstrap -y
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource HAProxyInstance --configsets haproxy --region ${AWS::Region}
+            apt-get update -y
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource HAPRoxyInstance --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: '1'
+        Timeout: PT10M
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          haproxy:
+            - "config_cfn"
+            - "haconfig"
+          config_cfn:
+            files:
+              /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+                content: !Sub |
+                  [cfn-auto-reloader-hook]
+                  triggers=post.update
+                  path=Resources.HAProxyInstance.Metadata.AWS::CloudFormation::Init
+                  action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource HAProxyInstance --configsets appserver --region ${AWS::Region}
+                  runas=root
+                mode: "000400"
+                owner: root
+                group: root
+              /etc/cfn/cfn-hup.conf:
+                content: !Sub |
+                  [main]
+                  stack=${AWS::StackId}
+                  region=${AWS::Region}
+                  verbose=true
+                  interval=5
+                mode: "000400"
+                owner: root
+                group: root
+            services:
+              sysvinit:
+                cfn-hup:
+                  enabled: "true"
+                  ensureRunning: "true"
+                  files:
+                    - "/etc/cfn/cfn-hup.conf"
+                    - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+          haconfig:
+            packages:
+              apt:
+                haproxy: []
+            files:
+              /opt/scaleips.sh:
+                content: !Sub |
+                  #!/bin/bash
+
+              /etc/haproxy/haproxy.cfg:
+                content: !Sub |
+              
+
+
+
+
+
+Outputs:
