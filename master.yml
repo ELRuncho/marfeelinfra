@@ -31,14 +31,14 @@ Resources:
   SecurityGroups:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: ./Security/SecGroups.yml
+      TemplateURL:  https://marfeelrafaelfranco.s3-eu-west-1.amazonaws.com/Security/SecGroups.yml
       Parameters:
         VPCId: !Ref VPCId
   
   AppserverTier:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: ./APPSERVER/Appserver.yml
+      TemplateURL:  https://marfeelrafaelfranco.s3-eu-west-1.amazonaws.com/APPSERVER/Appserver.yml
       Parameters:
         AppserverSG: !GetAtt SecurityGroups.Outputs.AppserverSG
         AMI: !Ref AppserverAMI
@@ -49,7 +49,7 @@ Resources:
   HAPROXY:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: ./HAPROXY/Haproxy.yml
+      TemplateURL:  https://marfeelrafaelfranco.s3-eu-west-1.amazonaws.com/HAPROXY/HAproxy.yml
       Parameters:
         HAproxySG: !GetAtt SecurityGroups.Outputs.HAproxySG
         AMI: !Ref HaProxyAMI
