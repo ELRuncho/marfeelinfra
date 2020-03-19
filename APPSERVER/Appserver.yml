@@ -102,3 +102,6 @@ Resources:
 Outputs:
   AppserverTier:
     Value: !Ref AppserverTier
+
+  AppserverAutoScalingGroup:
+    Value: !Ref AppserverAutoScalingGroup

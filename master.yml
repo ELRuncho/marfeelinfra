@@ -10,12 +10,21 @@ Parameters:
 
   AppserverAMI:
     Type: AWS::EC2::Image::Id
-  
+
+  HaProxyAMI:
+    Type: AWS::EC2::Image::Id
+
   AZ1:
     Type: AWS::EC2::AvailabilityZone::Name
 
   AZ2:
     Type: AWS::EC2::AvailabilityZone::Name
+
+  Accesskey:
+    Type: String
+
+  SecretKey:
+    Type: String
 
 Resources:
   
@@ -42,12 +51,15 @@ Resources:
     Properties:
       TemplateURL: ./HAPROXY/Haproxy.yml
       Parameters:
-        AppserverTier:
-        HAproxySG:
-        AMI:
-        Key:
+        HAproxySG: !GetAtt SecurityGroups.Outputs.HAproxySG
+        AMI: !Ref HaProxyAMI
+        Key: !Ref Key
+        AppserverTier: !GetAtt AppserverTier.Outputs.AppserverAutoScalingGroup
+        Accesskey: !Ref Accesskey
+        SecretKey: !Ref SecretKey
   
 
 Outputs:
 
-  https://github.com/ELRuncho/MoodleCloudFormation.git/moodlestack_simple.yaml
+  HaProxyIP:
+    Value: !GetAtt HAPROXY.Outputs.HAproxyIP

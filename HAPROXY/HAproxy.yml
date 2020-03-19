@@ -13,6 +13,12 @@ Parameters:
 
   AppserverTier:
     Type: String
+  
+  Accesskey:
+    Type: String
+
+  SecretKey:
+    Type: String
 
 Resources:
   
@@ -29,10 +35,16 @@ Resources:
           !Sub |
             #!/bin/bash
             apt-get update -y 
+            apt-get install
             apt-get install aws-cfn-bootstrap -y
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource HAProxyInstance --configsets haproxy --region ${AWS::Region}
             apt-get update -y
+            apt-get install python3-boto3
+            aws configure set aws_access_key_id ${Accesskey}
+            aws configure set aws_secret_access_key ${SecretKey}
+            aws configure set default.region ${AWS::Region}
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource HAPRoxyInstance --region ${AWS::Region}
+
     CreationPolicy:
       ResourceSignal:
         Count: '1'
@@ -77,10 +89,26 @@ Resources:
             packages:
               apt:
                 haproxy: []
+                python3: []
+                awscli: []
             files:
-              /opt/scaleips.sh:
+              /opt/scaleips.py:
                 content: !Sub |
-                  #!/bin/bash
+                  import boto3
+                  import subprocess
+                  ec2 = boto3.resource('ec2', region_name='eu-west-1')
+                  asg = boto3.client('autoscaling', region_name='eu-west-1')
+                  def getinstanceips():
+                      response= asg.describe_auto_scaling_groups(AutoScalingGroupNames=[${AppserverTier},],)
+                      groups=response.get("AutoScalingGroups")
+                      instances=(groups[0].get('Instances'))
+                      subprocess.call("sed -i '42,$d' /etc/haproxy/haproxy.cfg",shell=True)
+                      for i in instances:
+                          ip= ec2.Instance(i.get('InstanceId')).public_ip_address
+                          e='echo "                          server webserver2 {0}:80 checks">>/etc/haproxy/haproxy.cfg'.format(ip)
+                          subprocess.call(e,shell=True)
+                  if __name__ == "__main__":
+                      getinstanceips()
 
 
               /etc/haproxy/haproxy.cfg:
@@ -135,5 +163,5 @@ Resources:
 
 Outputs:
 
-  HAproxy:
-    Value: !Ref HAProxyInstance
+  HAproxyIP:
+    Value: !GetAtt  HAProxyInstance.PublicIp
