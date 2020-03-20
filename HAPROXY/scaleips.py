@@ -14,7 +14,8 @@ def getinstanceips():
         ip= ec2.Instance(i.get('InstanceId')).public_ip_address
         e='echo "                          server webserver2 {0}:80 checks">>/etc/haproxy/haproxy.cfg'.format(ip)
         subprocess.call(e,shell=True)
-        print(e)
+        subprocess.call('sudo service haproxy restart',shell=True)
+        
 
 if __name__ == "__main__":
     getinstanceips()

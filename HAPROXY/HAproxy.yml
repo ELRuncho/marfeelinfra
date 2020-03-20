@@ -48,7 +48,8 @@ Resources:
             echo "3 * * * * python /opt/scaleips.py &" >> mycron
             crontab mycron
             rm mycron
-            
+            sudo service haproxy restart
+
 
 
 
