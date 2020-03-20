@@ -6,7 +6,7 @@ asg = boto3.client('autoscaling', region_name='eu-west-1')
 
 
 def getinstanceips():
-    response= asg.describe_auto_scaling_groups(AutoScalingGroupNames=['MyASGroup',],)
+    response= asg.describe_auto_scaling_groups(AutoScalingGroupNames=['AppserverASG',],)
     groups=response.get("AutoScalingGroups")
     instances=(groups[0].get('Instances'))
     subprocess.call("sed -i '42,$d' /etc/haproxy/haproxy.cfg",shell=True)
