@@ -25,7 +25,7 @@ Resources:
       ImageId: !Ref AMI
       InstanceType: t2.nano 
       KeyName: !Ref Key
-      LaunchConfigurationName: String
+      LaunchConfigurationName: AppserverTier
       SecurityGroups:
         - !Ref AppserverSG
       UserData: 
@@ -91,7 +91,7 @@ Resources:
   AppserverAutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
-      AutoScalingGroupName: String
+      AutoScalingGroupName: AppserverASG
       AvailabilityZones:
         - !Ref AZ1
         - !Ref AZ2

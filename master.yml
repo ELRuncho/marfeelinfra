@@ -58,7 +58,7 @@ Resources:
         Accesskey: !Ref Accesskey
         SecretKey: !Ref SecretKey
   
-
+ 
 Outputs:
 
   HaProxyIP:

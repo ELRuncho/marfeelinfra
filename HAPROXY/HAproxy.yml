@@ -28,136 +28,27 @@ Resources:
       ImageId: !Ref AMI
       InstanceType: t2.nano
       KeyName: !Ref Key
-      SecurityGroups: 
+      SecurityGroupIds: 
         - !Ref HAproxySG
       UserData:
         "Fn::Base64":
           !Sub |
             #!/bin/bash
-            apt-get update -y 
-            apt-get install
-            apt-get install aws-cfn-bootstrap -y
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource HAProxyInstance --configsets haproxy --region ${AWS::Region}
             apt-get update -y
-            apt-get install python3-boto3
+            apt-get install awscli haproxy python python3-boto3 -y
             aws configure set aws_access_key_id ${Accesskey}
             aws configure set aws_secret_access_key ${SecretKey}
             aws configure set default.region ${AWS::Region}
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource HAPRoxyInstance --region ${AWS::Region}
-
-    CreationPolicy:
-      ResourceSignal:
-        Count: '1'
-        Timeout: PT10M
-    Metadata:
-      AWS::CloudFormation::Init:
-        configSets:
-          haproxy:
-            - "config_cfn"
-            - "haconfig"
-          config_cfn:
-            files:
-              /etc/cfn/hooks.d/cfn-auto-reloader.conf:
-                content: !Sub |
-                  [cfn-auto-reloader-hook]
-                  triggers=post.update
-                  path=Resources.HAProxyInstance.Metadata.AWS::CloudFormation::Init
-                  action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource HAProxyInstance --configsets appserver --region ${AWS::Region}
-                  runas=root
-                mode: "000400"
-                owner: root
-                group: root
-              /etc/cfn/cfn-hup.conf:
-                content: !Sub |
-                  [main]
-                  stack=${AWS::StackId}
-                  region=${AWS::Region}
-                  verbose=true
-                  interval=5
-                mode: "000400"
-                owner: root
-                group: root
-            services:
-              sysvinit:
-                cfn-hup:
-                  enabled: "true"
-                  ensureRunning: "true"
-                  files:
-                    - "/etc/cfn/cfn-hup.conf"
-                    - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
-          haconfig:
-            packages:
-              apt:
-                haproxy: []
-                python3: []
-                awscli: []
-            files:
-              /opt/scaleips.py:
-                content: !Sub |
-                  import boto3
-                  import subprocess
-                  ec2 = boto3.resource('ec2', region_name='eu-west-1')
-                  asg = boto3.client('autoscaling', region_name='eu-west-1')
-                  def getinstanceips():
-                      response= asg.describe_auto_scaling_groups(AutoScalingGroupNames=[${AppserverTier},],)
-                      groups=response.get("AutoScalingGroups")
-                      instances=(groups[0].get('Instances'))
-                      subprocess.call("sed -i '42,$d' /etc/haproxy/haproxy.cfg",shell=True)
-                      for i in instances:
-                          ip= ec2.Instance(i.get('InstanceId')).public_ip_address
-                          e='echo "                          server webserver2 {0}:80 checks">>/etc/haproxy/haproxy.cfg'.format(ip)
-                          subprocess.call(e,shell=True)
-                  if __name__ == "__main__":
-                      getinstanceips()
-
-
-              /etc/haproxy/haproxy.cfg:
-                content: !Sub |
-                  global
-                          log /dev/log    local0
-                          log /dev/log    local1 notice
-                          chroot /var/lib/haproxy
-                          stats socket /run/haproxy/admin.sock mode 660 level admin
-                          stats timeout 30s
-                          user haproxy
-                          group haproxy
-                          daemon
-
-                          # Default SSL material locations
-                          ca-base /etc/ssl/certs
-                          crt-base /etc/ssl/private
-
-                          # Default ciphers to use on SSL-enabled listening sockets.
-                          # For more information, see ciphers(1SSL). This list is from:
-                          #  https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
-                          ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS
-                          ssl-default-bind-options no-sslv3
-
-                  defaults
-                          log     global
-                          mode    http
-                          option  httplog
-                          option  dontlognull
-                          timeout connect 5000
-                          timeout client  50000
-                          timeout server  50000
-                          errorfile 400 /etc/haproxy/errors/400.http
-                          errorfile 403 /etc/haproxy/errors/403.http
-                          errorfile 408 /etc/haproxy/errors/408.http
-                          errorfile 500 /etc/haproxy/errors/500.http
-                          errorfile 502 /etc/haproxy/errors/502.http
-                          errorfile 503 /etc/haproxy/errors/503.http
-                          errorfile 504 /etc/haproxy/errors/504.http
-
-                  listen firstbalance
-                          bind *:80
-                          balance roundrobin
-                          option forwardfor
-                          option httpchk
-                          server webserver1 Your-Webserver1-IP:80 check
-                          server webserver2 Your-Webserver2-IP:80 check
-
-
+            cd /opt
+            wget https://marfeelrafaelfranco.s3-eu-west-1.amazonaws.com/HAPROXY/scaleips.py
+            cd /etc/haproxy
+            rm haproxy.cfg
+            wget https://marfeelrafaelfranco.s3-eu-west-1.amazonaws.com/HAPROXY/haproxy.cfg
+            crontab -l > mycron
+            echo "3 * * * * python /opt/scaleips.py &" >> mycron
+            crontab mycron
+            rm mycron
+            
 
 
 
